@@ -52,7 +52,7 @@ nav:
     - Implementations:
       - Overlay: "api_reference/implementations/Overlay.md"
       - File System: "api_reference/implementations/Filesystem.md"
-      #- Data Portal: dataportal.md
+      - Data Portal: "api_reference/implementations/Dataportal.md"
 
 plugins:
   - search

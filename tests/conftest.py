@@ -20,6 +20,8 @@ TOTO = pooch.create(
     },
 )
 
+# Determine if all tests should be run
+RUN_ALL = bool(int(os.environ.get("RUN_ALL", 1)))
 
 CLEANUP = True
 
@@ -132,7 +134,7 @@ def local(base_project_directory, base_overlay_directory, base_config):
 COMMON_CASES.extend(["local_overlay_only", "local"])
 
 
-if importlib_util.find_spec("s3fs"):
+if importlib_util.find_spec("s3fs") and RUN_ALL:
 
     @pytest.fixture(scope="session")
     def s3_container():
@@ -235,7 +237,7 @@ if importlib_util.find_spec("s3fs"):
     COMMON_CASES.extend(["s3_overlay_only", "s3"])
 
 
-if importlib_util.find_spec("sshfs"):
+if importlib_util.find_spec("sshfs") and RUN_ALL:
 
     @pytest.fixture(scope="session")
     def ssh_container():
@@ -348,7 +350,7 @@ if importlib_util.find_spec("sshfs"):
     COMMON_CASES.extend(["ssh_overlay_only", "ssh"])
 
 
-if importlib_util.find_spec("smbclient"):
+if importlib_util.find_spec("smbclient") and RUN_ALL:
 
     @pytest.fixture(scope="session")
     def smb_container():

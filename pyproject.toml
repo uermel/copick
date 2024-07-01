@@ -17,6 +17,8 @@ dependencies = [
     "numpy",
     "trimesh",
     "zarr",
+    "cryoet-data-portal==3.0.3",
+    "s3fs",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
@@ -32,16 +34,14 @@ Repository = "https://github.com/uermel/copick.git"
 Issues = "https://github.com/uermel/copick/issues"
 
 [project.optional-dependencies]
-s3 = ["s3fs"]
 smb = ["smbprotocol"]
 ssh = ["sshfs>=2024.6.0"]
-all = ["s3fs", "smbprotocol", "sshfs>=2024.6.0"]
-fledgeling = ["pooch", "s3fs", "smbprotocol", "sshfs>=2024.6.0"]
+all = ["smbprotocol", "sshfs>=2024.6.0"]
+fledgeling = ["pooch", "smbprotocol", "sshfs>=2024.6.0"]
 test = [
     "pytest",
     "pytest-cov",
     "pooch",
-    "s3fs",
     "sshfs>=2024.6.0",
     "smbprotocol",
 ]
@@ -128,7 +128,7 @@ test = "pytest {args:tests}"
 
 [tool.hatch.envs.test_extended]
 dependencies = [
-  "pytest", "pooch", "s3fs", "sshfs>=2024.6.0", "smbprotocol"
+  "pytest", "pooch", "sshfs>=2024.6.0", "smbprotocol"
 ]
 
 [tool.hatch.envs.test_extended.scripts]

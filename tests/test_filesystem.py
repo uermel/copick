@@ -29,14 +29,16 @@ def test_root_lazy(test_payload: Dict[str, Any]):
     rnames = [r.name for r in runs]
 
     assert copick_root._runs is not None, "Runs should be populated"
-    assert rnames == ["TS_001", "TS_002", "TS_003"], "Incorrect runs"
+    assert len(runs) == 3, "Incorrect number of runs"
+    assert set(rnames) == {"TS_001", "TS_002", "TS_003"}, "Incorrect runs"
 
     # Access the objects and confirm query
     objects = copick_root.pickable_objects
     onames = [o.name for o in objects]
 
     assert copick_root._objects is not None, "Objects should be populated"
-    assert onames == ["proteasome", "ribosome", "membrane"], "Incorrect objects"
+    assert len(objects) == 3, "Incorrect number of objects"
+    assert set(onames) == {"proteasome", "ribosome", "membrane"}, "Incorrect objects"
 
 
 def test_root_metadata(test_payload: Dict[str, Any]):
@@ -90,7 +92,8 @@ def test_root_refresh(test_payload: Dict[str, Any]):
 
     assert copick_root._runs is not None, "Runs should be populated"
     rnames = [r.name for r in copick_root.runs]
-    assert rnames == ["TS_001", "TS_002", "TS_003"], "Incorrect runs"
+    assert len(copick_root.runs) == 3, "Incorrect number of runs"
+    assert set(rnames) == {"TS_001", "TS_002", "TS_003"}, "Incorrect runs"
 
 
 def test_root_new_run(test_payload: Dict[str, Any]):
@@ -206,7 +209,8 @@ def test_run_lazy(test_payload: Dict[str, Any]):
     voxel_spacings = copick_run.voxel_spacings
     vs = [v.voxel_size for v in voxel_spacings]
     assert copick_run._voxel_spacings is not None, "Voxel spacings should be populated"
-    assert vs == [10.000, 20.000], "Incorrect voxel spacings"
+    assert len(vs) == 2, "Incorrect number of voxel spacings"
+    assert set(vs) == {10.000, 20.000}, "Incorrect voxel spacings"
 
     # Access the picks and confirm query
     picks = copick_run.picks

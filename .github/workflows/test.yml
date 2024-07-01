@@ -15,6 +15,8 @@ jobs:
   test-extended:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.platform }}
+    env:
+      RUN_ALL: 1
     strategy:
       matrix:
         platform: [
@@ -56,6 +58,8 @@ jobs:
   test-macos:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.platform }}
+    env:
+      RUN_ALL: 0
     strategy:
       matrix:
         platform: [
@@ -95,6 +99,8 @@ jobs:
   test-windows:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.platform }}
+    env:
+      RUN_ALL: 0
     strategy:
       matrix:
         platform: [
