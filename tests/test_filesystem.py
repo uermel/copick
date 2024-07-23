@@ -5,6 +5,7 @@ import pytest
 import zarr
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
+from copick.util.ome import write_ome_zarr_3d
 from trimesh.parent import Geometry
 
 NUMERICAL_PRECISION = 1e-8
@@ -622,6 +623,43 @@ def test_segmentation_read_numpy(test_payload: Dict[str, Any]):
     ), "Error getting numpy array (incorrect sum)."
 
 
+def test_segmentation_write_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Get run
+    copick_run = copick_root.get_run("TS_001")
+
+    # Get new segmentation
+    segmentation = copick_run.new_segmentation(
+        name="ribosome",
+        user_id="pytom",
+        session_id="10",
+        is_multilabel=False,
+        voxel_size=10.000,
+    )
+
+    # Write numpy array
+    array = np.random.randint(low=0, high=50, size=(64, 64, 64)).astype(np.uint8)
+    segmentation.from_numpy(array)
+
+    # Check zarr contents
+    arrays = list(zarr.open(segmentation.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(array, array2), "Error writing numpy array"
+
+    # Write subregion
+    sub_array = np.random.rand(30, 30, 30).astype(np.uint8)
+    franken_array = array
+    franken_array[10:40, 10:40, 10:40] = sub_array
+    segmentation.set_region(sub_array, x=slice(10, 40), y=slice(10, 40), z=slice(10, 40))
+
+    # Check zarr contents
+    arrays = list(zarr.open(segmentation.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
+
+
 def test_run_new_voxel_spacing(test_payload: Dict[str, Any]):
     # Setup
     copick_root = test_payload["root"]
@@ -1229,6 +1267,34 @@ def test_tomogram_read_numpy(test_payload: Dict[str, Any]):
     ), "Error getting numpy array (incorrect sum)."
 
 
+def test_tomogram_write_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    vs = copick_run.get_voxel_spacing(10.000)
+    tomogram = vs.new_tomogram(tomo_type="test")
+
+    # Write numpy array
+    array = np.random.rand(64, 64, 64)
+    tomogram.from_numpy(array)
+
+    # Check zarr contents
+    arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(array, array2), "Error writing numpy array"
+
+    # Write subregion
+    sub_array = np.random.rand(30, 30, 30)
+    franken_array = array
+    franken_array[10:40, 10:40, 10:40] = sub_array
+    tomogram.set_region(sub_array, x=slice(10, 40), y=slice(10, 40), z=slice(10, 40))
+
+    # Check zarr contents
+    arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
+
+
 def test_feature_meta(test_payload: Dict[str, Any]):
     # Setup
     copick_root = test_payload["root"]
@@ -1287,6 +1353,31 @@ def test_feature_read_numpy(test_payload: Dict[str, Any]):
         563.36730957,
         abs=NUMERICAL_PRECISION,
     ), "Error getting numpy array (incorrect sum)."
+
+
+def test_feature_write_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    vs = copick_run.get_voxel_spacing(10.000)
+    tomogram = vs.get_tomogram(tomo_type="wbp")
+    feat = tomogram.new_features(feature_type="test")
+
+    # Write zarr
+    array = np.random.rand(64, 64, 64)
+    pyramid = {10.000: array}
+    write_ome_zarr_3d(feat.zarr(), pyramid, (32, 32, 32))
+
+    # Write subregion
+    sub_array = np.random.rand(30, 30, 30)
+    franken_array = array
+    franken_array[10:40, 10:40, 10:40] = sub_array
+    feat.set_region(sub_array, slices=(slice(10, 40), slice(10, 40), slice(10, 40)))
+
+    # Check zarr contents
+    arrays = list(zarr.open(feat.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
 
 
 def test_mesh_meta(test_payload: Dict[str, Any]):

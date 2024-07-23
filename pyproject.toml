@@ -12,14 +12,17 @@ classifiers = [
 #dynamic = ["version"]
 version = "0.5.5"
 dependencies = [
+    "click",
+    "cryoet-data-portal==3.0.3",
     "fsspec>=2024.6.0",
-    "pydantic>=2",
     "numpy",
+    "ome-zarr",
+    "psutil",
+    "pydantic>=2",
+    "s3fs",
+    "scikit-image",
     "trimesh",
     "zarr",
-    "cryoet-data-portal==3.0.3",
-    "s3fs",
-    "click",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},

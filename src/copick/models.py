@@ -7,6 +7,8 @@ import zarr
 from pydantic import BaseModel, field_validator
 from trimesh.parent import Geometry
 
+from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
+
 
 class PickableObject(BaseModel):
     """Metadata for a pickable objects.
@@ -262,7 +264,51 @@ class CopickObject:
         if loc is None:
             return None
 
-        return np.array(zarr.open(loc)[zarr_group][z, y, x])
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return group[z, y, x]
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        voxel_size: float,
+        dtype: Optional[np.dtype] = np.float32,
+    ) -> None:
+        """Set the object from a numpy array.
+
+        Args:
+            data: The segmentation as a numpy array.
+            voxel_size: Voxel size of the object.
+            dtype: Data type of the segmentation. Default is `np.float32`.
+        """
+        loc = self.zarr()
+
+        pyramid = volume_pyramid(data, voxel_size, 1, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the object from a numpy array.
+
+        Args:
+            data: The object's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
 
 
 class CopickRoot:
@@ -1287,7 +1333,51 @@ class CopickTomogram:
         """
 
         loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
         return np.array(zarr.open(loc)[zarr_group][z, y, x])
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        levels: int = 3,
+        dtype: Optional[np.dtype] = np.float32,
+    ) -> None:
+        """Set the tomogram from a numpy array and compute multiscale pyramid. By default, three levels of the pyramid
+        are computed.
+
+        Args:
+            data: The segmentation as a numpy array.
+            levels: Number of levels in the multiscale pyramid.
+            dtype: Data type of the segmentation. Default is `np.float32`.
+        """
+        loc = self.zarr()
+        pyramid = volume_pyramid(data, self.voxel_spacing.voxel_size, levels, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the tomogram from a numpy array.
+
+        Args:
+            data: The tomogram's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
 
 
 class CopickFeaturesMeta(BaseModel):
@@ -1356,11 +1446,33 @@ class CopickFeatures:
 
         loc = self.zarr()
         group = zarr.open(loc)[zarr_group]
+        ndim = len(group.shape)
 
         if slices is None:
-            return np.array(group)
-        else:
-            return np.array(group[slices])
+            slices = tuple(slice(None, None) for _ in range(ndim))
+
+        fits, req, avail = fits_in_memory(group, slices)
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return np.array(group[slices])
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        slices: Tuple[slice, ...] = None,
+    ) -> None:
+        """Set the content of the Zarr-File for this feature map from a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            data: The data to set.
+            zarr_group: Zarr group to access.
+            slices: Tuple of slices for the axes.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][slices] = data
 
 
 class CopickPicksFile(BaseModel):
@@ -1774,4 +1886,48 @@ class CopickSegmentation:
         """
 
         loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
         return np.array(zarr.open(loc)[zarr_group][z, y, x])
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        levels: int = 1,
+        dtype: Optional[np.dtype] = np.uint8,
+    ) -> None:
+        """Set the segmentation from a numpy array and compute multiscale pyramid. By default, no pyramid is computed
+        for segmentations.
+
+        Args:
+            data: The segmentation as a numpy array.
+            levels: Number of levels in the multiscale pyramid.
+            dtype: Data type of the segmentation. Default is `np.uint8`.
+        """
+        loc = self.zarr()
+        pyramid = segmentation_pyramid(data, self.voxel_size, levels, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the segmentation from a numpy array.
+
+        Args:
+            data: The segmentation's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
